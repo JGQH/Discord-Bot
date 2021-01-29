@@ -21,6 +21,8 @@ async def join_game(ctx:commands.Context):
         name = ctx.author.name
         print(f'Player {name} joined the game!')
         await ctx.send(f'Welcome aboard, {name}!')
+
+        await game.startGame()
     else:
         await ctx.send("We couldn't add you to the game!")
 
@@ -32,5 +34,11 @@ async def leave_game(ctx:commands.Context):
         await ctx.send(f'Until next time, {name}!')
     else:
         await ctx.send("We couldn't remove you from the game!")
+
+@botto.command(name='action', help='During game, sets actions to be done by the bot')
+async def action(ctx:commands.Context, action_type:str, val=None):
+    name = ctx.author.name
+    if(game.started and game.playerExists(name)):
+        print(f'Player "{name}" performs action "{action_type}" with value "{val}"')
 
 botto.run(TOKEN)
