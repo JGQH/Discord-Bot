@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from discord.ext import commands
 from game import Game
+from player import Player
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -15,8 +16,8 @@ game = Game()
 async def on_ready():
     print(f'{botto.user.name} is alive!')
 
-@botto.command(name='join_game', help='Allows a new player to join the current game')
-async def join_game(ctx:commands.Context):
+@botto.command(name='join', help='Allows a new player to join the current game')
+async def join(ctx:commands.Context):
     if(game.addPlayer(ctx)):
         name = ctx.author.name
         print(f'Player {name} joined the game!')
@@ -26,8 +27,8 @@ async def join_game(ctx:commands.Context):
     else:
         await ctx.send("We couldn't add you to the game!")
 
-@botto.command(name='leave_game', help='Removes player from game if it hasn\'t started yet')
-async def leave_game(ctx:commands.Context):
+@botto.command(name='leave', help='Removes player from game if it hasn\'t started yet')
+async def leave(ctx:commands.Context):
     name = ctx.author.name
     if(game.removePlayer(name)):
         print(f'Player {name} left the game!')
@@ -36,9 +37,10 @@ async def leave_game(ctx:commands.Context):
         await ctx.send("We couldn't remove you from the game!")
 
 @botto.command(name='action', help='During game, sets actions to be done by the bot')
-async def action(ctx:commands.Context, action_type:str, val=None):
+async def action(ctx:commands.Context, action:str, val=None):
     name = ctx.author.name
     if(game.started and game.playerExists(name)):
-        print(f'Player "{name}" performs action "{action_type}" with value "{val}"')
+        await ctx.send(game.addAction(name, action, val))
+        print(f'Action attempted by {name}: "{action}" (val = {val})')
 
 botto.run(TOKEN)
