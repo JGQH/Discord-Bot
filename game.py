@@ -1,14 +1,16 @@
 from player import Player
+from drawer import Drawer
 from discord.ext import commands
-from threading import Timer
+from discord import File as DFile
 from module import getMove, loopVal
 from timer import Timer
 import random
 import math
 
 class Game():
-    MIN_PLAYER_COUNT = 1
-    ROUND_DURATION = 15
+    MAX_BOARD_SIZE = 15
+    MIN_PLAYER_COUNT = 2
+    ROUND_DURATION = 25 #Measured in seconds
 
     def __init__(self):
         self.started = False
@@ -38,18 +40,20 @@ class Game():
     async def startGame(self):
         if(len(self.players) == Game.MIN_PLAYER_COUNT):
             print("Game has started!")
+            self.randomizePositions()
+
             for name in self.players:
                 player:Player = self.players[name]
                 await player.ctx.send("Game has started!")
-
-            self.randomizePositions()
+                
+            await self.updatePlayers()
             self.resetActions()
             self.started = True
 
     def addAction(self, name:str, action:str, val:None)->str:
         player:Player = self.players[name]
 
-        if((player.actionsUsed < 3) and (action in ["move", "shoot", "rotate"])):
+        if((player.actionsUsed < 3) and (action in ["move", "shoot", "aim"])):
             self.actions[player.actionsUsed][action][name] = val
             player.actionsUsed += 1
 
@@ -60,21 +64,21 @@ class Game():
         self.actions = [{
             "move": {},
             "shoot": {},
-            "rotate": {}
+            "aim": {}
         }, {
             "move": {},
             "shoot": {},
-            "rotate": {}
+            "aim": {}
         }, {
             "move": {},
             "shoot": {},
-            "rotate": {}
+            "aim": {}
         }]
 
         self.timer = Timer(Game.ROUND_DURATION, self.doGame)
 
     async def doGame(self):
-        #Action priority: move > shoot > rotate
+        #Action priority: move > shoot > aim
         for i in range(3):
             actions = self.actions[i]
 
@@ -83,7 +87,7 @@ class Game():
 
             self.playerShoot(actions["shoot"])
 
-            self.playerRotate(actions["rotate"])
+            self.playerAim(actions["aim"])
 
             await self.killPlayers()
 
@@ -95,8 +99,8 @@ class Game():
             player:Player = self.players[name]
             dx, dy = getMove(actions[name])
 
-            player.x = loopVal(player.x + dx)
-            player.y = loopVal(player.y + dy)
+            player.x = loopVal(player.x + dx, Game.MAX_BOARD_SIZE)
+            player.y = loopVal(player.y + dy, Game.MAX_BOARD_SIZE)
 
     def playerShoot(self, actions:dict):
         for name in actions:
@@ -106,20 +110,27 @@ class Game():
             x = player.x
             y = player.y
 
-            while ((0 < x < 40) and (0 < y < 40)):
-                x += math.cos(rad)
-                y += math.sin(rad)
+            nx = x
+            ny = y
+            while ((0 < x < Game.MAX_BOARD_SIZE) and (0 < y < Game.MAX_BOARD_SIZE)):
+                nx += math.cos(rad)
+                ny -= math.sin(rad)
 
-                target = self.getPlayerAt(int(x), int(y))
-                if(target):
-                    target.hp -= 1
+                if((int(nx) != x) or (int(ny) != y)):
+                    x = int(nx)
+                    y = int(ny)
 
-    def playerRotate(self, actions:dict):
+                    target = self.getPlayerAt(x, y)
+                    if(target):
+                        target.hp -= 1
+                        break
+
+    def playerAim(self, actions:dict):
         for name in actions:
             try:
                 player:Player = self.players[name]
                 rotation = int(actions[name])
-                player.rotation = (player.rotation + rotation) % 360
+                player.rotation = rotation % 360
             except:
                 pass
 
@@ -129,8 +140,8 @@ class Game():
 
             notPlaced = True
             while notPlaced:
-                rndX = random.randrange(0, 40)
-                rndY = random.randrange(0, 40)
+                rndX = random.randrange(0, Game.MAX_BOARD_SIZE)
+                rndY = random.randrange(0, Game.MAX_BOARD_SIZE)
 
                 if(self.getPlayerAt(rndX, rndY)):
                     pass
@@ -147,10 +158,22 @@ class Game():
         return
 
     async def updatePlayers(self):
-        for name in self.players:
-            player:Player = self.players[name]
-            player.actionsUsed = 0
-            await player.ctx.send(f'You can move now. Location: ({player.x}, {player.y})')
+        board = Drawer.renderBoard(self.players)
+        if len(self.players == 1):
+            for name in self.players:
+                player:Player = self.players[name]
+                await player.ctx.send(content="You've won")
+                
+            self.started = False
+            self.timer.cancel()
+        else:
+            for name in self.players:
+                player:Player = self.players[name]
+                player.actionsUsed = 0
+
+                new_board = Drawer.renderPlayer(player, board)
+                await player.ctx.send(content="Actions update, current board:", file=new_board)
+            print("\nNew round!")
 
     async def killPlayers(self):
         for name in self.players:
@@ -161,12 +184,10 @@ class Game():
                     actions = self.actions[i]
                     actions["move"].pop(name, None)
                     actions["shoot"].pop(name, None)
-                    actions["rotate"].pop(name, None)
+                    actions["aim"].pop(name, None)
 
                 #Removes player from player list
                 del self.players[name]
                 await player.ctx.send("You've been killed!")
-
-        if(len(self.players) == 0):
-            self.started = False
-            self.timer.cancel()
+            
+        
