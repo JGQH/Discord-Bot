@@ -39,6 +39,12 @@ class Drawer():
         enemy_img = Image.open("resources/enemy_img.png", 'r')
         Drawer.enemy_img = enemy_img
 
+        Drawer.hps_imgs = [
+            Image.open("resources/1hp_img.png", 'r'),
+            Image.open("resources/2hp_img.png", 'r'),
+            Image.open("resources/3hp_img.png", 'r')
+        ]
+
     @staticmethod
     def renderBoard(players:dict):
         board = Drawer.board_img.copy()
@@ -47,6 +53,9 @@ class Drawer():
 
             box = (32 * player.x, 32 * player.y)
             board.paste(Drawer.enemy_img, box, mask=Drawer.enemy_img)
+
+            hp_img = Drawer.hps_imgs[player.hp - 1]
+            board.paste(hp_img, box, mask=hp_img)
 
         return board
 

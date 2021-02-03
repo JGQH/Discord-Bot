@@ -159,10 +159,10 @@ class Game():
 
     async def updatePlayers(self):
         board = Drawer.renderBoard(self.players)
-        if len(self.players == 1):
-            for name in self.players:
-                player:Player = self.players[name]
-                await player.ctx.send(content="You've won")
+        if len(self.players) == 1:
+            name = list(self.players.keys())[0]
+            player:Player = self.players[name]
+            await player.ctx.send(content="You've won")
                 
             self.started = False
             self.timer.cancel()
