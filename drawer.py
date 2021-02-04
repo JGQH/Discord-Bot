@@ -39,6 +39,9 @@ class Drawer():
         enemy_img = Image.open("resources/enemy_img.png", 'r')
         Drawer.enemy_img = enemy_img
 
+        pointer_img = Image.open("resources/pointer_img.png", 'r')
+        Drawer.pointer_img = pointer_img
+
         Drawer.hps_imgs = [
             Image.open("resources/1hp_img.png", 'r'),
             Image.open("resources/2hp_img.png", 'r'),
@@ -46,27 +49,27 @@ class Drawer():
         ]
 
     @staticmethod
-    def renderBoard(players:dict):
+    def renderBoard(players:dict, player_name:str):
         board = Drawer.board_img.copy()
         for name in players:
             player:Player = players[name]
-
             box = (32 * player.x, 32 * player.y)
-            board.paste(Drawer.enemy_img, box, mask=Drawer.enemy_img)
 
+            #Player img
+            if (player_name == name):
+                board.paste(Drawer.player_img, box, mask=Drawer.player_img)
+
+                #Pointer
+                pointer_img = Drawer.pointer_img.rotate(player.rotation - 45)
+                board.paste(pointer_img, box, mask=pointer_img)
+            else:
+                board.paste(Drawer.enemy_img, box, mask=Drawer.enemy_img)
+
+            #Remaining hp
             hp_img = Drawer.hps_imgs[player.hp - 1]
             board.paste(hp_img, box, mask=hp_img)
-
-        return board
-
-    @staticmethod
-    def renderPlayer(player:Player, board):
-        box = (32 * player.x, 32 * player.y)
         
-        new_board = board.copy()
-        new_board.paste(Drawer.player_img, box, mask=Drawer.player_img)
-
         holder = BytesIO()
-        new_board.save(holder, format='PNG')
+        board.save(holder, format='PNG')
         holder.seek(0)
         return File(fp=holder, filename='board.png')

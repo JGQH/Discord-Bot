@@ -8,7 +8,7 @@ import random
 import math
 
 class Game():
-    MAX_BOARD_SIZE = 15
+    MAX_BOARD_SIZE = 10
     MIN_PLAYER_COUNT = 2
     ROUND_DURATION = 25 #Measured in seconds
 
@@ -158,7 +158,6 @@ class Game():
         return
 
     async def updatePlayers(self):
-        board = Drawer.renderBoard(self.players)
         if len(self.players) == 1:
             name = list(self.players.keys())[0]
             player:Player = self.players[name]
@@ -171,8 +170,8 @@ class Game():
                 player:Player = self.players[name]
                 player.actionsUsed = 0
 
-                new_board = Drawer.renderPlayer(player, board)
-                await player.ctx.send(content="Actions update, current board:", file=new_board)
+                board = Drawer.renderBoard(self.players, name)
+                await player.ctx.send(content="Actions update, current board:", file=board)
             print("\nNew round!")
 
     async def killPlayers(self):
